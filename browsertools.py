@@ -28,15 +28,17 @@ class Browser:
         return self.driver
     
     def setPref(self, target, value):
-        if self.driver == None:
+        if self.driver == None and self.profile != None:
             self.profile.set_preference(target, value)
-        else:
+        elif self.driver != None:
             ac = ActionChains(self.driver)
             ac.key_down(Keys.SHIFT).send_keys(Keys.F2).key_up(Keys.SHIFT).perform()
             ac.send_keys('pref set {} {}'.format(target, str(value))).perform()
             ac.send_keys(Keys.ENTER).perform()
             ac.key_down(Keys.SHIFT).send_keys(Keys.F2).key_up(Keys.SHIFT).perform()
-            ac.key_down(Keys.SHIFT).send_keys(Keys.F2).key_up(Keys.SHIFT).perform()            
+            ac.key_down(Keys.SHIFT).send_keys(Keys.F2).key_up(Keys.SHIFT).perform()
+        else:
+            return False
         self.prefs[str(target)] = value
     
     def setProxy(self, proxy, types=["http", "https", "ftp", "socks", "ssl"]):
@@ -44,8 +46,8 @@ class Browser:
         self.setPref("network.proxy.type", 1)
         for eachType in types:
             proxystring = 'network.proxy.' + eachType
-            self.setRule(proxystring, self.proxy)
-            self.setRule(proxystring + '_port', int(self.proxyp))
+            self.setPref(proxystring, self.proxy)
+            self.setPref(proxystring + '_port', int(self.proxyp))
     
     def getScrollPosition(self, axis='y'):
         return self.driver.execute_script("return window.page{}Offset;".format(axis.upper()))
@@ -59,11 +61,20 @@ class Browser:
         for eachChar in value:
             target.send_keys(eachChar)
             self.wait(min, max)
-            
-        
-    
+              
     def get(self, url):
-        pass
+        finished = 0
+        i = 0
+        while finished == 0:
+            if i > 5:
+                return False
+            try:
+                self.driver.get(url)
+                finished = 1
+            except:
+                wait()
+                i += 1
+        return True
     
     def savePic(self, elem, output):
         location = elem.location
