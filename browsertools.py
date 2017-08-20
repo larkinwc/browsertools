@@ -90,9 +90,14 @@ class Browser:
         image = image.crop((left, top, right, bottom))
         image.save(output, 'jpeg')        
     
-    def scrollTo(self, elem):
-        self.driver.execute_script("return arguments[0].scrollIntoView();", elem)
-        self.driver.execute_script("window.scrollBy(0, -150);")
+    def scrollTo(self, elem='', y='', x=''):
+        if elem:
+            self.driver.execute_script("return arguments[0].scrollIntoView();", elem)
+            self.driver.execute_script("window.scrollBy(0, -150);")
+        if y:
+            self.driver.execute_script("window.scrollTo(" + str(y) + ", Y)")
+        if x:
+            self.driver.execute_script("window.scrollTo(" + str(x) + ", X)")
     
     def hide(self):
         self.driver.set_window_position(-3000, 0)
