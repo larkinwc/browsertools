@@ -173,7 +173,11 @@ def readEmail(server, username, password):
     email_to = str(email.header.make_header(email.header.decode_header(email_message['To'])))
     subject = str(email.header.make_header(email.header.decode_header(email_message['Subject'])))
     # Body details
-    otpCode = ""    
+    otpCode = ""
+
+if __name__ == "__main__":
+    b = Browser()
+    b.startDriver()
 
 def solveTextCaptcha():
     while True:
