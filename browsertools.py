@@ -99,6 +99,7 @@ class Browser:
         except:
             sitekey = self.driver.find_element_by_class_name("NoCaptcha").get_attribute('data-sitekey')
         return sitekey
+    
     def solveTextCaptcha(self, captcha, min_length=None, max_length=None, digits=True, letters=True, characters=True, lower=True, upper=True, language="en", retries=3):
         captchafile = generateData(16) + ".png"
         self.savePic(captcha, captchafile)
@@ -129,7 +130,6 @@ class Browser:
                 
         if t == 1:
             return self.solveTextCaptcha(captcha, min_length, max_length, digits, letters, characters, lower, upper, language, retries)
-            
         return captchatxt
     
     def solveReCaptcha(self, api):
@@ -150,16 +150,12 @@ class Browser:
             target.send_keys(eachChar)
             wait(min, max)
             
-    def randomWindowSize(self, sizes=[], handle='current'):
-        t = ["1920x1080", "1366x768", "1280x1024", "1280x800", "1024x768"]
-        if sizes:
-            t = sizes
-        t = t.split('x')
+    def setWindowSize(self, sizes=["1920x1080", "1366x768", "1280x1024", "1280x800", "1024x768"], handle='current'):
+        t = random.choice(sizes).split('x')
         if self.driver == None:
             self.size = t
         else:
             self.driver.set_window_size(t[0], t[1], handle)
-            
               
     def get(self, url):
         finished = 0
