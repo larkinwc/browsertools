@@ -2,7 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from PIL import Image
-from python_anticaptcha import AnticaptchaClient, NoCaptchaTaskProxylessTask
+from python_anticaptcha import AnticaptchaClient, NoCaptchaTaskProxylessTask, ImageToTextTask
 import random, time, email, imaplib, string, os
 
 def wait(min=1, max=3):
@@ -33,14 +33,20 @@ class Browser:
         self.driver = None
         self.prefs = {}
         self.captchaAPI = {"text": "", "recaptcha": ""}
+        self.auth = ""
+        self.size = ""
         
     def startDriver(self, browser='Firefox', profile=None):
         browser = browser.lower()
         if browser == 'firefox':
-            if profile != None:
-                self.driver = webdriver.Firefox(profile)
-            else:
-                self.driver = webdriver.Firefox()
+            if profile == None:
+                profile = self.profile
+            self.driver = webdriver.Firefox(profile)
+        if self.auth:
+            self.setProxyAuth(self.auth)
+        if self.size:
+            self.driver.set_window_size(size[0], size[1])
+        self.driver.implicitly_wait(10)
         return self.driver
     
     def setPref(self, target, value):
@@ -57,24 +63,74 @@ class Browser:
             return False
         self.prefs[str(target)] = value
     
-    def setProxy(self, proxy, types=["http", "https", "ftp", "socks", "ssl"]):
+    def setProxy(self, proxy, auth="", types=["http", "https", "ftp", "socks", "ssl"]):
+        if "@" in proxy:
+            auth, proxy = proxy.split('@')
         self.proxy, self.proxyp = proxy.split(':')
         self.setPref("network.proxy.type", 1)
+        self.auth = auth
         for eachType in types:
             proxystring = 'network.proxy.' + eachType
             self.setPref(proxystring, self.proxy)
             self.setPref(proxystring + '_port', int(self.proxyp))
+        if self.driver and auth:
+            self.setProxyAuth(auth)
+            
+    def setProxyAuth(self, auth):
+        auth = self.auth.split(":")
+        time.sleep(1)
+        while True:
+            try:
+                alert = self.driver.switch_to_alert()
+                alert.send_keys(auth[0])
+                break
+            except:
+                time.sleep(0.5)
+        alert.send_keys(Keys.TAB + auth[1])
+        alert.accept() 
+        self.auth = auth
     
     def getScrollPosition(self, axis='y'):
         return self.driver.execute_script("return window.page{}Offset;".format(axis.upper()))
     
     def getSiteKey(self):
-        return self.driver.find_element_by_class_name("g-recaptcha").get_attribute('data-sitekey')
-    
-    def solveTextCaptcha(self, captcha, length="", digits=True, letters=True, characters=True, lower=True, upper=True):
-        captchafile = generateData(16) + ".jpg"
+        try:
+            sitekey = self.driver.find_element_by_class_name("g-recaptcha").get_attribute('data-sitekey')
+        except:
+            sitekey = self.driver.find_element_by_class_name("NoCaptcha").get_attribute('data-sitekey')
+        return sitekey
+    def solveTextCaptcha(self, captcha, min_length=None, max_length=None, digits=True, letters=True, characters=True, lower=True, upper=True, language="en", retries=3):
+        captchafile = generateData(16) + ".png"
         self.savePic(captcha, captchafile)
-        
+        captcha_fp = open(captchafile, 'rb')
+        client = AnticaptchaClient(self.captchaAPI['text'])
+        task = ImageToTextTask(captcha_fp, min_length=min_length, max_length=max_length)
+        job = client.createTask(task)
+        job.join()        
+        captchatxt = job.get_captcha_text()
+        t = 0
+        #if length and length != len(captchatxt):
+         #   t = 1
+        if t != 1:
+            for everyChar in captchatxt:
+                if digits == False and everyChar in string.digits:
+                    t = 1
+                    break
+                if language == "en":
+                    if letters == False and everyChar in string.ascii_letters:
+                        t = 1
+                        break
+                    if lower == False and everyChar in string.ascii_lowercase:
+                        t = 1
+                        break
+                    if upper == False and everyChar in string.ascii_uppercase:
+                        t = 1
+                        break
+                
+        if t == 1:
+            return self.solveTextCaptcha(captcha, min_length, max_length, digits, letters, characters, lower, upper, language, retries)
+            
+        return captchatxt
     
     def solveReCaptcha(self, api):
         sitekey = self.getSiteKey()
@@ -93,6 +149,17 @@ class Browser:
         for eachChar in value:
             target.send_keys(eachChar)
             wait(min, max)
+            
+    def randomWindowSize(self, sizes=[], handle='current'):
+        t = ["1920x1080", "1366x768", "1280x1024", "1280x800", "1024x768"]
+        if sizes:
+            t = sizes
+        t = t.split('x')
+        if self.driver == None:
+            self.size = t
+        else:
+            self.driver.set_window_size(t[0], t[1], handle)
+            
               
     def get(self, url):
         finished = 0
@@ -120,10 +187,14 @@ class Browser:
         right = location['x'] + size['width']
         bottom = location['y'] + size['height']
         image = image.crop((left, top, right, bottom))
-        image.save(output, 'jpeg')        
+        image.save(output, 'png')        
         
     def select(self, elem, by, value):
-        pass
+        t = Select(elem)
+        if by == 'value':
+            t.select_by_value(value)
+        elif by == 'index':
+            t.select_by_index(value)
     
     def scrollTo(self, elem='', y='', x=''):
         if elem:
@@ -178,23 +249,3 @@ def readEmail(server, username, password):
 if __name__ == "__main__":
     b = Browser()
     b.startDriver()
-
-def solveTextCaptcha():
-    while True:
-        wait(min=1)
-        if captchaservice == 'deathbycaptcha':
-            if True:
-                balance = client.get_balance()
-                captcha = client.decode('captcha.jpeg', 34)
-                if captcha:
-                    """if len(captcha["text"]) != 5:
-                        client.report(captcha["captcha"])
-                        return solve_captcha(element)
-                    else:
-                        try:
-                            val = int(captcha["text"])
-                        except:
-                            client.report(captcha["captcha"])
-                            return solve_captcha(element) """                           
-                    os.remove('captcha.jpeg')
-                    return captcha["text"], captcha["captcha"]  
