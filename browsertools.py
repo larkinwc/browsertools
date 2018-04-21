@@ -1,9 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image
 from python_anticaptcha import AnticaptchaClient, NoCaptchaTaskProxylessTask, ImageToTextTask
-import random, time, email, imaplib, string, os
+import random, time, email, imaplib, string, os, datetime
 
 def wait(min=1, max=3):
     if min > max:
@@ -45,7 +46,7 @@ class Browser:
         if self.auth:
             self.setProxyAuth(self.auth)
         if self.size:
-            self.driver.set_window_size(size[0], size[1])
+            self.driver.set_window_size()
         self.driver.implicitly_wait(10)
         return self.driver
     
@@ -217,8 +218,8 @@ class Browser:
         self.driver.execute_script('document.' + getelemstring + '(' + target + ').value = "' + value + '"')
         
 def readEmail(server, username, password):
-    mail = imaplib.IMAP4_SSL(MAIL_SERVER)
-    mail.login(EMAIL_ACCOUNT, PASSWORD)
+    mail = imaplib.IMAP4_SSL(server)
+    mail.login(username, password)
     mail.list()
     mail.select('inbox')
     result, data = mail.uid('search', None, "UNSEEN")  # (ALL/UNSEEN)
