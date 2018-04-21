@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image
 from python_anticaptcha import AnticaptchaClient, NoCaptchaTaskProxylessTask, ImageToTextTask
+from pyvirtualdisplay import Display 
 import random, time, email, imaplib, string, os, datetime
 
 def wait(min=1, max=3):
@@ -36,17 +37,23 @@ class Browser:
         self.captchaAPI = {"text": "", "recaptcha": ""}
         self.auth = ""
         self.size = ""
+        self.display = None #used for virtual frame buffer
         
-    def startDriver(self, browser='Firefox', profile=None):
+    def startDriver(self, browser='Firefox', profile=None, exec_path = './chromedriver'):
         browser = browser.lower()
         if browser == 'firefox':
             if profile == None:
                 profile = self.profile
             self.driver = webdriver.Firefox(profile)
+        elif browser == 'chrome':
+            if profile == None:
+                profile = webdriver.ChromeOptions()
+                self.profile = profile
+            self.driver = webdriver.Chrome(chrome_options = profile, executable_path = exec_path)
         if self.auth:
             self.setProxyAuth(self.auth)
         if self.size:
-            self.driver.set_window_size()
+            self.driver.set_window_size(self.size[0], self.size[1]) 
         self.driver.implicitly_wait(10)
         return self.driver
     
@@ -210,6 +217,11 @@ class Browser:
         self.driver.set_window_position(0, 0)
         self.hidden = False
         
+    def startHidden(self):
+        if(not self.size):
+            self.setWindowSize()
+        self.display = Display(visible=0, size=(self.size[0], self.size[1])).start() 
+
     def inject(self, target, value, elemtype='id'):
         elemtype = elemtype.lower()
         getelemstring = "getElementBy{}"
