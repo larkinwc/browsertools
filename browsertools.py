@@ -159,8 +159,9 @@ class Browser:
 			return self.solveTextCaptcha(captcha, min_length, max_length, digits, letters, characters, lower, upper, language, retries)
 		return captchatxt
 	
-	def solveReCaptcha(self, api):
-		sitekey = self.getSiteKey()
+	def solveReCaptcha(self, api, sitekey = None):
+		if sitekey == None:
+			sitekey = self.getSiteKey()
 		client = AnticaptchaClient(api)
 		task = NoCaptchaTaskProxylessTask(self.driver.current_url, sitekey)
 		job = client.createTask(task)
@@ -249,32 +250,6 @@ class Browser:
 		if elemtype == 'id':
 			getelemstring.format('Id')
 		self.driver.execute_script('document.' + getelemstring + '(' + target + ').value = "' + value + '"')
-		
-def readEmail(server, username, password):
-	mail = imaplib.IMAP4_SSL(server)
-	mail.login(username, password)
-	mail.list()
-	mail.select('inbox')
-	result, data = mail.uid('search', None, "UNSEEN")  # (ALL/UNSEEN)
-	i = len(data[0].split())
-	x = i - 1
-	latest_email_uid = data[0].split()[x]
-	result, email_data = mail.uid('fetch', latest_email_uid, '(RFC822)')
-	raw_email = email_data[0][1]
-	raw_email_string = raw_email.decode('utf-8')
-	email_message = email.message_from_string(raw_email_string)
-
-	# Header Details
-	date_tuple = email.utils.parsedate_tz(email_message['Date'])
-	if date_tuple:
-		local_date = datetime.datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
-		local_message_date = "%s" % (str(local_date.strftime("%a, %d %b %Y %H:%M:%S")))
-
-	email_from = str(email.header.make_header(email.header.decode_header(email_message['From'])))
-	email_to = str(email.header.make_header(email.header.decode_header(email_message['To'])))
-	subject = str(email.header.make_header(email.header.decode_header(email_message['Subject'])))
-	# Body details
-	otpCode = ""
 
 if __name__ == "__main__":
 	b = Browser()
